@@ -1,6 +1,5 @@
-# beatoraja
-Codename beatoraja is a Cross-platform rhythm game based on Java and libGDX.
-It works on Windows, Mac OS, and Linux.
+# beat o jaja
+dandeless beatoraja fork
 
 # Features
 - 3 types of Long Note mode : Long Notes, Charge Notes, Hell Charge Notes, and Back Spin Scratch like iidx
