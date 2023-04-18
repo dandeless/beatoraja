@@ -18,7 +18,6 @@ import bms.player.beatoraja.MainController.IRStatus;
 import bms.player.beatoraja.input.BMSPlayerInputProcessor;
 import bms.player.beatoraja.ir.*;
 import bms.player.beatoraja.play.GrooveGauge;
-import bms.player.beatoraja.select.MusicSelector;
 import bms.player.beatoraja.skin.SkinType;
 import bms.player.beatoraja.skin.property.EventFactory.EventType;
 import bms.player.beatoraja.song.SongData;
@@ -188,6 +187,8 @@ public class MusicResult extends AbstractResult {
 								if (coursegauge.size <= i) {
 									resource.getCourseScoreData().setMinbp(resource.getCourseScoreData().getMinbp()
 											+ resource.getCourseBMSModels()[i].getTotalNotes());
+									resource.getCourseScoreData().setTotalDuration(resource.getCourseScoreData().getTotalDuration()
+											+ 1000000L * resource.getCourseBMSModels()[i].getTotalNotes());
 								}
 							}
 							// 不合格リザルト
@@ -197,6 +198,13 @@ public class MusicResult extends AbstractResult {
 							main.changeState(MainStateType.MUSICSELECT);
 						}
 					} else if (resource.nextCourse()) {
+						RankingData songrank = main.getRankingDataCache().get(resource.getSongdata(), main.getPlayerConfig().getLnmode());
+						if(main.getIRStatus().length > 0 && songrank == null) {
+							songrank = new RankingData();
+							main.getRankingDataCache().put(resource.getSongdata(), main.getPlayerConfig().getLnmode(), songrank);
+						}
+						resource.setRankingData(songrank);
+
 						main.changeState(MainStateType.PLAY);
 					} else {
 						// 合格リザルト
@@ -392,6 +400,7 @@ public class MusicResult extends AbstractResult {
 			cscore.setEms(cscore.getEms() + newscore.getEms());
 			cscore.setLms(cscore.getLms() + newscore.getLms());
 			cscore.setMinbp(cscore.getMinbp() + newscore.getMinbp());
+			cscore.setTotalDuration(cscore.getTotalDuration() + newscore.getTotalDuration());
 			if (resource.getGauge()[resource.getGrooveGauge().getType()].get(resource.getGauge()[resource.getGrooveGauge().getType()].size - 1) > 0) {
 				if (resource.getAssist() > 0) {
 					if(resource.getAssist() == 1 && cscore.getClear() != ClearType.AssistEasy.id) cscore.setClear(ClearType.LightAssistEasy.id);
@@ -435,7 +444,7 @@ public class MusicResult extends AbstractResult {
 		}
 
 		if (resource.getPlayMode().mode == BMSPlayerMode.Mode.PLAY) {
-			main.getPlayDataAccessor().writeScoreDara(resource.getScoreData(), resource.getBMSModel(),
+			main.getPlayDataAccessor().writeScoreData(resource.getScoreData(), resource.getBMSModel(),
 					resource.getPlayerConfig().getLnmode(), resource.isUpdateScore());
 		} else {
 			Logger.getGlobal().info("プレイモードが" + resource.getPlayMode().mode.name() + "のため、スコア登録はされません");

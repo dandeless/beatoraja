@@ -3,7 +3,10 @@ package bms.player.beatoraja;
 import static bms.player.beatoraja.Resolution.*;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Json;
@@ -18,6 +21,9 @@ import bms.player.beatoraja.AudioConfig.FrequencyType;
  * @author exch
  */
 public class Config implements Validatable {
+	
+	static final Path configpath_old = Paths.get("config.json");
+	static final Path configpath = Paths.get("config_sys.json");	
 
 	/**
 	 * 選択中のプレイヤー名
@@ -55,7 +61,7 @@ public class Config implements Validatable {
 	 */
 	private int maxFramePerSecond = 240;
 
-	private int prepareFramePerSecond = 10000;
+	private int prepareFramePerSecond = 0;
 	/**
 	 * 検索バー同時表示上限数
 	 */
@@ -509,8 +515,8 @@ public class Config implements Validatable {
 			audio.setBgvolume(bgvolume);
 		}
 		audio.validate();
-		maxFramePerSecond = MathUtils.clamp(maxFramePerSecond, 0, 10000);
-		prepareFramePerSecond = MathUtils.clamp(prepareFramePerSecond, 1, 10000);
+		maxFramePerSecond = MathUtils.clamp(maxFramePerSecond, 0, 50000);
+		prepareFramePerSecond = MathUtils.clamp(prepareFramePerSecond, 0, 100000);
         maxSearchBarCount = MathUtils.clamp(maxSearchBarCount, 1, 100);
         songPreview = (songPreview != null) ? songPreview : SongPreview.LOOP;
 
@@ -546,14 +552,22 @@ public class Config implements Validatable {
 
 	public static Config read() {
 		Config config = null;
-		if (Files.exists(MainController.configpath)) {
+		if (Files.exists(configpath)) {
 			Json json = new Json();
 			json.setIgnoreUnknownFields(true);
-			try (FileReader reader = new FileReader(MainController.configpath.toFile())) {
+			try (Reader reader = new InputStreamReader(new FileInputStream(configpath.toFile()), StandardCharsets.UTF_8)) {
 				config = json.fromJson(Config.class, reader);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
+		} else if(Files.exists(configpath_old)) {
+			Json json = new Json();
+			json.setIgnoreUnknownFields(true);
+			try (FileReader reader = new FileReader(configpath_old.toFile())) {
+				config = json.fromJson(Config.class, reader);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}			
 		}
 		if(config == null) {
 			config = new Config();
@@ -569,7 +583,7 @@ public class Config implements Validatable {
 		Json json = new Json();
 		json.setUsePrototypes(false);
 		json.setOutputType(OutputType.json);
-		try (FileWriter writer = new FileWriter(MainController.configpath.toFile())) {
+		try (Writer writer = new OutputStreamWriter(new FileOutputStream(configpath.toFile()), StandardCharsets.UTF_8)) {
 			writer.write(json.prettyPrint(config));
 			writer.flush();
 		} catch (IOException e) {

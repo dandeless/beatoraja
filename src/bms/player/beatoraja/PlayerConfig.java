@@ -1,6 +1,7 @@
 package bms.player.beatoraja;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.*;
 import java.util.logging.Logger;
@@ -26,6 +27,9 @@ import com.badlogic.gdx.utils.SerializationException;
  */
 public class PlayerConfig {
 
+	static final Path configpath_old = Paths.get("config.json");
+	static final Path configpath = Paths.get("config_player.json");	
+
 	private String id;
     /**
      * プレイヤーネーム
@@ -50,13 +54,14 @@ public class PlayerConfig {
 	private int doubleoption;
 
 	/**
-	 * スコアターゲット(旧仕様)
-	 */
-	private int target;
-	/**
 	 * スコアターゲット
 	 */
 	private String targetid = "MAX";
+	
+	private String[] targetlist = new String[] {"RATE_A-","RATE_A", "RATE_A+","RATE_AA-","RATE_AA", "RATE_AA+", "RATE_AAA-", "RATE_AAA", "RATE_AAA+", "MAX"
+			,"RANK_NEXT", "IR_NEXT_1", "IR_NEXT_2", "IR_NEXT_3", "IR_NEXT_4", "IR_NEXT_5", "IR_NEXT_10"
+			, "IR_RANK_1", "IR_RANK_5", "IR_RANK_10", "IR_RANK_20", "IR_RANK_30", "IR_RANK_40", "IR_RANK_50"
+			, "IR_RANKRATE_5", "IR_RANKRATE_10", "IR_RANKRATE_15", "IR_RANKRATE_20", "IR_RANKRATE_25", "IR_RANKRATE_30", "IR_RANKRATE_35", "IR_RANKRATE_40", "IR_RANKRATE_45","IR_RANKRATE_50"};
 	/**
 	 * 判定タイミング
 	 */
@@ -517,20 +522,20 @@ public class PlayerConfig {
 		this.irconfig = irconfig;
 	}
 
-	public int getTarget() {
-		return target;
-	}
-
-	public void setTarget(int target) {
-		this.target = target;
-	}
-
 	public String getTargetid() {
 		return targetid;
 	}
 
 	public void setTargetid(String targetid) {
 		this.targetid = targetid;
+	}
+
+	public String[] getTargetlist() {
+		return targetlist;
+	}
+
+	public void setTargetlist(String[] targetlist) {
+		this.targetlist = targetlist;
 	}
 
 	public int getMisslayerDuration() {
@@ -798,8 +803,8 @@ public class PlayerConfig {
 		random = MathUtils.clamp(random, 0, 9);
 		random2 = MathUtils.clamp(random2, 0, 9);
 		doubleoption = MathUtils.clamp(doubleoption, 0, 3);
-		target = MathUtils.clamp(target, 0, TargetProperty.getAllTargetProperties().length);
 		targetid = targetid!= null ? targetid : "MAX";
+		targetlist = targetlist != null ? targetlist : new String[0];
 		judgetiming = MathUtils.clamp(judgetiming, JUDGETIMING_MIN, JUDGETIMING_MAX);
 		misslayerDuration = MathUtils.clamp(misslayerDuration, 0, 5000);
 		lnmode = MathUtils.clamp(lnmode, 0, 2);
@@ -919,20 +924,31 @@ public class PlayerConfig {
 
 	public static PlayerConfig readPlayerConfig(String playerpath, String playerid) {
 		PlayerConfig player = new PlayerConfig();
-		final Path path = Paths.get(playerpath + "/" + playerid + "/config.json");
-		try (FileReader reader = new FileReader(path.toFile())) {
-			Json json = new Json();
-			json.setIgnoreUnknownFields(true);
-			player = json.fromJson(PlayerConfig.class, reader);
-		} catch (SerializationException e) {
-			Logger.getGlobal().warning("PlayerConfigの読み込み失敗 - Path : " + path.toString() + " , Log : " + e.getMessage());
-			try {
-				Files.copy(path, Paths.get(playerpath + "/" + playerid + "/config_backup.json"));
-			} catch (IOException e1) {
-//				e1.printStackTrace();
+		final Path path = Paths.get(playerpath + "/" + playerid + "/" + configpath);
+		final Path path_old = Paths.get(playerpath + "/" + playerid + "/" + configpath_old);
+		if (Files.exists(path)) {
+			try (Reader reader = new InputStreamReader(new FileInputStream(path.toFile()), StandardCharsets.UTF_8)) {
+				Json json = new Json();
+				json.setIgnoreUnknownFields(true);
+				player = json.fromJson(PlayerConfig.class, reader);
+			} catch (SerializationException e) {
+				Logger.getGlobal().warning("PlayerConfigの読み込み失敗 - Path : " + path.toString() + " , Log : " + e.getMessage());
+				try {
+					Files.copy(path, Paths.get(playerpath + "/" + playerid + "/config_backup.json"));
+				} catch (IOException e1) {
+//					e1.printStackTrace();
+				}
+			} catch(Throwable e) {
+				e.printStackTrace();
+			}			
+		} else if(Files.exists(path_old)) {
+			try (FileReader reader = new FileReader(path_old.toFile())) {
+				Json json = new Json();
+				json.setIgnoreUnknownFields(true);
+				player = json.fromJson(PlayerConfig.class, reader);
+			} catch(Throwable e) {
+				e.printStackTrace();
 			}
-		} catch(Throwable e) {
-			e.printStackTrace();
 		}
 		player.setId(playerid);
 		player.validate();
@@ -940,7 +956,8 @@ public class PlayerConfig {
 	}
 
 	public static void write(String playerpath, PlayerConfig player) {
-		try (FileWriter writer = new FileWriter(Paths.get(playerpath + "/" + player.getId() + "/config.json").toFile())) {
+		try (Writer writer = new OutputStreamWriter(
+				new FileOutputStream(Paths.get(playerpath + "/" + player.getId() + "/" + configpath).toFile()), StandardCharsets.UTF_8)) {
 			Json json = new Json();
 			json.setOutputType(JsonWriter.OutputType.json);
 			json.setUsePrototypes(false);

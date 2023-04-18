@@ -254,6 +254,7 @@ public class CourseResult extends AbstractResult {
 			dp |= model.getMode().player == 2;
 		}
 		newscore.setCombo(resource.getMaxcombo());
+		newscore.setAvgjudge(newscore.getTotalDuration() / newscore.getNotes());
 		int random = 0;
 		if (config.getRandom() > 0
 				|| (dp && (config.getRandom2() > 0 || config.getDoubleoption() > 0))) {
@@ -271,7 +272,7 @@ public class CourseResult extends AbstractResult {
 				Arrays.asList(resource.getCourseData().getSong()).stream().mapToInt(sd -> sd.getNotes()).sum());
 		getScoreDataProperty().update(newscore);
 
-		main.getPlayDataAccessor().writeScoreDara(newscore, models, config.getLnmode(),
+		main.getPlayDataAccessor().writeScoreData(newscore, models, config.getLnmode(),
 				random, resource.getConstraint(), resource.isUpdateCourseScore());
 
 
